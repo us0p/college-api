@@ -40,7 +40,7 @@ public class PostController {
     @PostMapping
     public ResponseEntity<PostResponse> create(@Valid @RequestBody PostRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(PostResponse.from(service.create(request.userId(), request.markdownContent())));
+                .body(PostResponse.from(service.create(request.userId(), request.title(), request.markdownContent())));
     }
 
     @Operation(summary = "Update a post's content")
@@ -48,7 +48,7 @@ public class PostController {
     @ApiResponse(responseCode = "404", description = "Post not found")
     @PutMapping("/{id}")
     public PostResponse update(@PathVariable Integer id, @Valid @RequestBody PostUpdateRequest request) {
-        return PostResponse.from(service.update(id, request.markdownContent()));
+        return PostResponse.from(service.update(id, request.title(), request.markdownContent()));
     }
 
     @Operation(summary = "Soft-delete a post")

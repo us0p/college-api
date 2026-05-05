@@ -6,6 +6,7 @@ import com.college.api.domain.role.RoleRepository;
 import com.college.api.domain.user.User;
 import com.college.api.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public List<User> findAll() {
@@ -30,11 +32,14 @@ public class UserService {
     }
 
     @Transactional
-    public User create(String username, Integer roleId, String ra) {
+    public User create(String username, String password, String email, String phoneNumber, Integer roleId, String ra) {
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role", roleId));
         User user = User.builder()
                 .username(username)
+                .passwordHash(passwordEncoder.encode(password))
+                .email(email)
+                .phoneNumber(phoneNumber)
                 .role(role)
                 .ra(ra)
                 .build();
@@ -42,11 +47,14 @@ public class UserService {
     }
 
     @Transactional
-    public User update(Integer id, String username, Integer roleId, String ra) {
+    public User update(Integer id, String username, String password, String email, String phoneNumber, Integer roleId, String ra) {
         User user = findById(id);
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role", roleId));
         user.setUsername(username);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setEmail(email);
+        user.setPhoneNumber(phoneNumber);
         user.setRole(role);
         user.setRa(ra);
         return userRepository.save(user);

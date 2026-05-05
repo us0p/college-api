@@ -15,7 +15,11 @@ Table role_permissions {
 }
 
 Table users {
-    username varchar(20) PK
+    id int PK
+    username varchar(20) UNIQUE NOT NULL
+    password_hash varchar(60) NOT NULL
+    email varchar(254) UNIQUE NOT NULL
+    phone_number varchar(20) UNIQUE
     role_id int NOT NULL references roles(id)
     ra varchar(10) UNIQUE
 }
@@ -23,6 +27,7 @@ Table users {
 Table posts {
     id int PK
     user_id int NOT NULL references users(id)
+    title varchar(200) NOT NULL
     markdown_content text NOT NULL
     created_at datetimetz NOT NULL
     updated_at datetimetz NOT NULL

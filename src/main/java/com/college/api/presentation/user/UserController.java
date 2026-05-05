@@ -40,7 +40,7 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(UserResponse.from(service.create(request.username(), request.roleId(), request.ra())));
+                .body(UserResponse.from(service.create(request.username(), request.password(), request.email(), request.phoneNumber(), request.roleId(), request.ra())));
     }
 
     @Operation(summary = "Update a user")
@@ -48,7 +48,7 @@ public class UserController {
     @ApiResponse(responseCode = "404", description = "User or role not found")
     @PutMapping("/{id}")
     public UserResponse update(@PathVariable Integer id, @Valid @RequestBody UserRequest request) {
-        return UserResponse.from(service.update(id, request.username(), request.roleId(), request.ra()));
+        return UserResponse.from(service.update(id, request.username(), request.password(), request.email(), request.phoneNumber(), request.roleId(), request.ra()));
     }
 
     @Operation(summary = "Delete a user")

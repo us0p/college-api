@@ -35,7 +35,7 @@ class PostServiceTest {
     @Test
     void findAllActive_returnsOnlyNonDeletedPosts() {
         List<Post> activePosts = List.of(
-                Post.builder().id(1).user(user).markdownContent("# Hello")
+                Post.builder().id(1).user(user).title("Hello").markdownContent("# Hello")
                         .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build()
         );
         when(postRepository.findAllActive()).thenReturn(activePosts);
@@ -45,7 +45,7 @@ class PostServiceTest {
 
     @Test
     void findById_whenExists_returnsPost() {
-        Post post = Post.builder().id(1).user(user).markdownContent("# Hello")
+        Post post = Post.builder().id(1).user(user).title("Hello").markdownContent("# Hello")
                 .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
         when(postRepository.findById(1)).thenReturn(Optional.of(post));
 
@@ -63,12 +63,13 @@ class PostServiceTest {
     @Test
     void create_whenUserExists_savesPost() {
         when(userRepository.findById(1)).thenReturn(Optional.of(user));
-        Post saved = Post.builder().id(1).user(user).markdownContent("# Hello")
+        Post saved = Post.builder().id(1).user(user).title("Hello").markdownContent("# Hello")
                 .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
         when(postRepository.save(any())).thenReturn(saved);
 
-        Post result = service.create(1, "# Hello");
+        Post result = service.create(1, "Hello", "# Hello");
 
+        assertThat(result.getTitle()).isEqualTo("Hello");
         assertThat(result.getMarkdownContent()).isEqualTo("# Hello");
         assertThat(result.getDeletedAt()).isNull();
     }
@@ -77,25 +78,26 @@ class PostServiceTest {
     void create_whenUserNotFound_throwsResourceNotFoundException() {
         when(userRepository.findById(99)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.create(99, "# Hello"))
+        assertThatThrownBy(() -> service.create(99, "Hello", "# Hello"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    void update_updatesMarkdownContent() {
-        Post existing = Post.builder().id(1).user(user).markdownContent("old")
+    void update_updatesTitleAndMarkdownContent() {
+        Post existing = Post.builder().id(1).user(user).title("Old").markdownContent("old")
                 .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
         when(postRepository.findById(1)).thenReturn(Optional.of(existing));
         when(postRepository.save(existing)).thenReturn(existing);
 
-        Post result = service.update(1, "new");
+        Post result = service.update(1, "New", "new");
 
+        assertThat(result.getTitle()).isEqualTo("New");
         assertThat(result.getMarkdownContent()).isEqualTo("new");
     }
 
     @Test
     void softDelete_setsDeletedAt() {
-        Post existing = Post.builder().id(1).user(user).markdownContent("# Hello")
+        Post existing = Post.builder().id(1).user(user).title("Hello").markdownContent("# Hello")
                 .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
         when(postRepository.findById(1)).thenReturn(Optional.of(existing));
         when(postRepository.save(any())).thenReturn(existing);

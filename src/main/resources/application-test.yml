@@ -13,3 +13,7 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
   flyway:
     enabled: false
+
+aws:
+  s3:
+    region: us-east-1

@@ -24,6 +24,9 @@ public class Post {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(length = 200, nullable = false)
+    private String title;
+
     @Column(name = "markdown_content", columnDefinition = "TEXT", nullable = false)
     private String markdownContent;
 

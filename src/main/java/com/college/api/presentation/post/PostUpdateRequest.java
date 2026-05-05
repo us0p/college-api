@@ -1,5 +1,9 @@
 package com.college.api.presentation.post;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-public record PostUpdateRequest(@NotBlank String markdownContent) {}
+public record PostUpdateRequest(
+        @NotBlank @Size(max = 200) String title,
+        @NotBlank String markdownContent
+) {}

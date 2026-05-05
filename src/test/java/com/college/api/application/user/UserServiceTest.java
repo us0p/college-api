@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +24,7 @@ class UserServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private RoleRepository roleRepository;
+    @Mock private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private UserService service;
@@ -56,37 +58,47 @@ class UserServiceTest {
     }
 
     @Test
-    void create_whenRoleExists_savesUser() {
+    void create_whenRoleExists_savesUserWithHashedPassword() {
         when(roleRepository.findById(1)).thenReturn(Optional.of(role));
-        User saved = User.builder().id(1).username("alice").role(role).ra("RA001").build();
+        when(passwordEncoder.encode("secret123")).thenReturn("$2a$10$hashedpassword");
+        User saved = User.builder().id(1).username("alice").passwordHash("$2a$10$hashedpassword")
+                .email("alice@example.com").phoneNumber("11999990000").role(role).ra("RA001").build();
         when(userRepository.save(any())).thenReturn(saved);
 
-        User result = service.create("alice", 1, "RA001");
+        User result = service.create("alice", "secret123", "alice@example.com", "11999990000", 1, "RA001");
 
         assertThat(result.getUsername()).isEqualTo("alice");
+        assertThat(result.getEmail()).isEqualTo("alice@example.com");
+        assertThat(result.getPhoneNumber()).isEqualTo("11999990000");
         assertThat(result.getRa()).isEqualTo("RA001");
+        assertThat(result.getPasswordHash()).isEqualTo("$2a$10$hashedpassword");
+        verify(passwordEncoder).encode("secret123");
     }
 
     @Test
     void create_whenRoleNotFound_throwsResourceNotFoundException() {
         when(roleRepository.findById(99)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.create("alice", 99, null))
+        assertThatThrownBy(() -> service.create("alice", "secret123", "alice@example.com", null, 99, null))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    void update_updatesFields() {
+    void update_updatesFieldsWithHashedPassword() {
         Role newRole = Role.builder().id(2).name("admin").build();
-        User existing = User.builder().id(1).username("alice").role(role).build();
+        User existing = User.builder().id(1).username("alice").passwordHash("oldhash")
+                .email("alice@example.com").role(role).build();
         when(userRepository.findById(1)).thenReturn(Optional.of(existing));
         when(roleRepository.findById(2)).thenReturn(Optional.of(newRole));
+        when(passwordEncoder.encode("newpass1")).thenReturn("$2a$10$newhash");
         when(userRepository.save(existing)).thenReturn(existing);
 
-        User result = service.update(1, "bob", 2, "RA002");
+        User result = service.update(1, "bob", "newpass1", "bob@example.com", "11888880000", 2, "RA002");
 
         assertThat(result.getUsername()).isEqualTo("bob");
         assertThat(result.getRole()).isEqualTo(newRole);
+        assertThat(result.getPasswordHash()).isEqualTo("$2a$10$newhash");
+        assertThat(result.getEmail()).isEqualTo("bob@example.com");
     }
 
     @Test

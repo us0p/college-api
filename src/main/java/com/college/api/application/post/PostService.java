@@ -31,12 +31,13 @@ public class PostService {
     }
 
     @Transactional
-    public Post create(Integer userId, String markdownContent) {
+    public Post create(Integer userId, String title, String markdownContent) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
         OffsetDateTime now = OffsetDateTime.now();
         Post post = Post.builder()
                 .user(user)
+                .title(title)
                 .markdownContent(markdownContent)
                 .createdAt(now)
                 .updatedAt(now)
@@ -45,8 +46,9 @@ public class PostService {
     }
 
     @Transactional
-    public Post update(Integer id, String markdownContent) {
+    public Post update(Integer id, String title, String markdownContent) {
         Post post = findById(id);
+        post.setTitle(title);
         post.setMarkdownContent(markdownContent);
         post.setUpdatedAt(OffsetDateTime.now());
         return postRepository.save(post);
