@@ -25,6 +25,7 @@ class DocumentServiceTest {
     @Mock private DocumentEmbeddingRepository embeddingRepository;
     @Mock private UserRepository userRepository;
     @Mock private DocumentStoragePort storagePort;
+    @Mock private DocumentTextExtractor textExtractor;
     @Mock private EmbeddingPort embeddingPort;
 
     @InjectMocks
@@ -65,49 +66,65 @@ class DocumentServiceTest {
     }
 
     @Test
-    void create_uploadsToStorageAndSavesDocumentAndEmbedding() {
+    void create_withKnowledgeBase_extractsDocumentContentAndSavesEmbedding() {
         String s3Url = "https://bucket.s3.us-east-1.amazonaws.com/uuid_report.pdf";
+        String extractedText = "lecture notes on data structures";
         Document saved = Document.builder().id(1).user(user).fileName("report.pdf")
-                .fileSize(3).bucketUrl(s3Url).build();
+                .fileSize(3).bucketUrl(s3Url).knowledgeBase(true).build();
 
         when(userRepository.findById(1)).thenReturn(Optional.of(user));
         when(storagePort.upload("report.pdf", CONTENT, "application/pdf")).thenReturn(s3Url);
         when(documentRepository.save(any())).thenReturn(saved);
-        when(embeddingPort.embed(any())).thenReturn(EMBEDDING);
+        when(textExtractor.extract(CONTENT, "application/pdf")).thenReturn(extractedText);
+        when(embeddingPort.embed(extractedText)).thenReturn(EMBEDDING);
         when(embeddingRepository.save(any())).thenReturn(
                 DocumentEmbedding.builder().id(1).document(saved).embedding(EMBEDDING).build());
 
-        Document result = service.create(1, "report.pdf", "Annual report", CONTENT, "application/pdf", 3);
+        Document result = service.create(1, "report.pdf", "Annual report", CONTENT, "application/pdf", 3, true);
 
         assertThat(result.getBucketUrl()).isEqualTo(s3Url);
-        verify(storagePort).upload("report.pdf", CONTENT, "application/pdf");
-        verify(embeddingPort).embed("report.pdf Annual report");
+        verify(textExtractor).extract(CONTENT, "application/pdf");
+        verify(embeddingPort).embed(extractedText);
         verify(embeddingRepository).save(any(DocumentEmbedding.class));
     }
 
     @Test
-    void create_withNullDescription_embedsFileNameOnly() {
+    void create_withoutKnowledgeBase_skipsExtractionAndEmbedding() {
         String s3Url = "https://bucket.s3.us-east-1.amazonaws.com/uuid_report.pdf";
         Document saved = Document.builder().id(1).user(user).fileName("report.pdf")
-                .fileSize(3).bucketUrl(s3Url).build();
+                .fileSize(3).bucketUrl(s3Url).knowledgeBase(false).build();
 
         when(userRepository.findById(1)).thenReturn(Optional.of(user));
         when(storagePort.upload(any(), any(), any())).thenReturn(s3Url);
         when(documentRepository.save(any())).thenReturn(saved);
-        when(embeddingPort.embed(any())).thenReturn(EMBEDDING);
-        when(embeddingRepository.save(any())).thenReturn(
-                DocumentEmbedding.builder().id(1).document(saved).embedding(EMBEDDING).build());
 
-        service.create(1, "report.pdf", null, CONTENT, "application/pdf", 3);
+        Document result = service.create(1, "report.pdf", "Annual report", CONTENT, "application/pdf", 3, false);
 
-        verify(embeddingPort).embed("report.pdf");
+        assertThat(result.getBucketUrl()).isEqualTo(s3Url);
+        verifyNoInteractions(textExtractor, embeddingPort, embeddingRepository);
+    }
+
+    @Test
+    void create_whenTextExtractionFails_throwsException() {
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(storagePort.upload(any(), any(), any())).thenReturn("https://bucket.s3.us-east-1.amazonaws.com/key");
+        when(documentRepository.save(any())).thenReturn(
+                Document.builder().id(1).user(user).fileName("f.pdf").fileSize(3)
+                        .knowledgeBase(true)
+                        .bucketUrl("https://bucket.s3.us-east-1.amazonaws.com/key").build());
+        when(textExtractor.extract(any(), any())).thenThrow(new RuntimeException("Tika error"));
+
+        assertThatThrownBy(() -> service.create(1, "f.pdf", null, CONTENT, "application/pdf", 3, true))
+                .hasMessage("Tika error");
+
+        verifyNoInteractions(embeddingPort, embeddingRepository);
     }
 
     @Test
     void create_whenUserNotFound_throwsResourceNotFoundException() {
         when(userRepository.findById(99)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.create(99, "f.pdf", null, CONTENT, "application/pdf", 3))
+        assertThatThrownBy(() -> service.create(99, "f.pdf", null, CONTENT, "application/pdf", 3, false))
                 .isInstanceOf(ResourceNotFoundException.class);
 
         verifyNoInteractions(storagePort, embeddingPort, documentRepository, embeddingRepository);
@@ -118,7 +135,7 @@ class DocumentServiceTest {
         when(userRepository.findById(1)).thenReturn(Optional.of(user));
         when(storagePort.upload(any(), any(), any())).thenThrow(new RuntimeException("S3 error"));
 
-        assertThatThrownBy(() -> service.create(1, "f.pdf", null, CONTENT, "application/pdf", 3))
+        assertThatThrownBy(() -> service.create(1, "f.pdf", null, CONTENT, "application/pdf", 3, false))
                 .hasMessage("S3 error");
 
         verifyNoInteractions(documentRepository, embeddingPort, embeddingRepository);
@@ -130,10 +147,12 @@ class DocumentServiceTest {
         when(storagePort.upload(any(), any(), any())).thenReturn("https://bucket.s3.us-east-1.amazonaws.com/key");
         when(documentRepository.save(any())).thenReturn(
                 Document.builder().id(1).user(user).fileName("f.pdf").fileSize(3)
+                        .knowledgeBase(true)
                         .bucketUrl("https://bucket.s3.us-east-1.amazonaws.com/key").build());
+        when(textExtractor.extract(any(), any())).thenReturn("extracted text");
         when(embeddingPort.embed(any())).thenThrow(new RuntimeException("Ollama error"));
 
-        assertThatThrownBy(() -> service.create(1, "f.pdf", null, CONTENT, "application/pdf", 3))
+        assertThatThrownBy(() -> service.create(1, "f.pdf", null, CONTENT, "application/pdf", 3, true))
                 .hasMessage("Ollama error");
 
         verifyNoInteractions(embeddingRepository);

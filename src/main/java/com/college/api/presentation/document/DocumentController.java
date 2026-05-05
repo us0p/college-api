@@ -45,11 +45,12 @@ public class DocumentController {
     public ResponseEntity<DocumentResponse> create(
             @RequestParam Integer userId,
             @RequestParam(required = false) String description,
+            @RequestParam(required = false, defaultValue = "false") boolean knowledgeBase,
             @RequestPart("file") MultipartFile file) throws IOException {
         String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : file.getName();
         String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
         Document document = service.create(
-                userId, fileName, description, file.getBytes(), contentType, (int) file.getSize());
+                userId, fileName, description, file.getBytes(), contentType, (int) file.getSize(), knowledgeBase);
         return ResponseEntity.status(HttpStatus.CREATED).body(DocumentResponse.from(document));
     }
 

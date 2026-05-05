@@ -40,7 +40,8 @@ Table documents {
     file_name varchar(100) UNIQUE NOT NULL
     description text
     file_size int NOT NULL
-    bucket_url varchar(255) UNIQUE NOT NULL 
+    bucket_url varchar(255) UNIQUE NOT NULL
+    knowledge_base boolean NOT NULL default false
 }
 
 Table document_embedding {

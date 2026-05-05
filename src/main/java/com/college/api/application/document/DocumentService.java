@@ -18,6 +18,7 @@ public class DocumentService {
     private final DocumentEmbeddingRepository embeddingRepository;
     private final UserRepository userRepository;
     private final DocumentStoragePort storagePort;
+    private final DocumentTextExtractor textExtractor;
     private final EmbeddingPort embeddingPort;
 
     @Transactional(readOnly = true)
@@ -33,7 +34,7 @@ public class DocumentService {
 
     @Transactional
     public Document create(Integer userId, String fileName, String description,
-                           byte[] content, String contentType, Integer fileSize) {
+                           byte[] content, String contentType, Integer fileSize, boolean knowledgeBase) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
@@ -45,15 +46,17 @@ public class DocumentService {
                 .description(description)
                 .fileSize(fileSize)
                 .bucketUrl(bucketUrl)
+                .knowledgeBase(knowledgeBase)
                 .build());
 
-        String textContent = description != null ? fileName + " " + description : fileName;
-        float[] embedding = embeddingPort.embed(textContent);
-
-        embeddingRepository.save(DocumentEmbedding.builder()
-                .document(document)
-                .embedding(embedding)
-                .build());
+        if (knowledgeBase) {
+            String textContent = textExtractor.extract(content, contentType);
+            float[] embedding = embeddingPort.embed(textContent);
+            embeddingRepository.save(DocumentEmbedding.builder()
+                    .document(document)
+                    .embedding(embedding)
+                    .build());
+        }
 
         return document;
     }

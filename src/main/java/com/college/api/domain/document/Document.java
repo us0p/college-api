@@ -33,4 +33,7 @@ public class Document {
 
     @Column(name = "bucket_url", length = 255, unique = true, nullable = false)
     private String bucketUrl;
+
+    @Column(name = "knowledge_base", nullable = false)
+    private boolean knowledgeBase;
 }

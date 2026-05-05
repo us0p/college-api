@@ -9,7 +9,8 @@ public record DocumentResponse(
         String fileName,
         String description,
         Integer fileSize,
-        String bucketUrl
+        String bucketUrl,
+        boolean knowledgeBase
 ) {
     public static DocumentResponse from(Document d) {
         return new DocumentResponse(
@@ -19,7 +20,8 @@ public record DocumentResponse(
                 d.getFileName(),
                 d.getDescription(),
                 d.getFileSize(),
-                d.getBucketUrl()
+                d.getBucketUrl(),
+                d.isKnowledgeBase()
         );
     }
 }

@@ -35,6 +35,7 @@ class DocumentControllerTest {
                 .id(1).user(user).fileName("report.pdf")
                 .description("Annual report").fileSize(1024)
                 .bucketUrl("https://bucket.s3.us-east-1.amazonaws.com/uuid_report.pdf")
+                .knowledgeBase(true)
                 .build();
     }
 
@@ -68,7 +69,7 @@ class DocumentControllerTest {
 
     @Test
     void POST_create_withValidMultipart_returns201() throws Exception {
-        when(service.create(anyInt(), any(), any(), any(), any(), anyInt()))
+        when(service.create(anyInt(), any(), any(), any(), any(), anyInt(), anyBoolean()))
                 .thenReturn(buildDocument());
 
         MockMultipartFile file = new MockMultipartFile(
@@ -77,15 +78,17 @@ class DocumentControllerTest {
         mockMvc.perform(multipart("/api/documents")
                         .file(file)
                         .param("userId", "1")
-                        .param("description", "Annual report"))
+                        .param("description", "Annual report")
+                        .param("knowledgeBase", "true"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.fileName").value("report.pdf"))
-                .andExpect(jsonPath("$.userId").value(1));
+                .andExpect(jsonPath("$.userId").value(1))
+                .andExpect(jsonPath("$.knowledgeBase").value(true));
     }
 
     @Test
     void POST_create_withoutDescription_returns201() throws Exception {
-        when(service.create(anyInt(), any(), isNull(), any(), any(), anyInt()))
+        when(service.create(anyInt(), any(), isNull(), any(), any(), anyInt(), anyBoolean()))
                 .thenReturn(buildDocument());
 
         MockMultipartFile file = new MockMultipartFile(
