@@ -1,0 +1,69 @@
+package com.college.api.application.post;
+
+import com.college.api.application.exception.ResourceNotFoundException;
+import com.college.api.domain.post.Post;
+import com.college.api.domain.post.PostRepository;
+import com.college.api.domain.user.User;
+import com.college.api.domain.user.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class PostService {
+
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
+
+    @Transactional(readOnly = true)
+    public List<Post> findAllActive() {
+        return postRepository.findAllActive();
+    }
+
+    @Transactional(readOnly = true)
+    public Post findById(Integer id) {
+        return postRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Post", id));
+    }
+
+    @Transactional
+    public Post create(Integer userId, String markdownContent) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        OffsetDateTime now = OffsetDateTime.now();
+        Post post = Post.builder()
+                .user(user)
+                .markdownContent(markdownContent)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        return postRepository.save(post);
+    }
+
+    @Transactional
+    public Post update(Integer id, String markdownContent) {
+        Post post = findById(id);
+        post.setMarkdownContent(markdownContent);
+        post.setUpdatedAt(OffsetDateTime.now());
+        return postRepository.save(post);
+    }
+
+    @Transactional
+    public void softDelete(Integer id) {
+        Post post = findById(id);
+        post.setDeletedAt(OffsetDateTime.now());
+        postRepository.save(post);
+    }
+
+    @Transactional
+    public void hardDelete(Integer id) {
+        if (!postRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Post", id);
+        }
+        postRepository.deleteById(id);
+    }
+}
