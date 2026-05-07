@@ -31,6 +31,7 @@ aws:
 ollama:
   base-url: ${OLLAMA_BASE_URL:http://host.docker.internal:11434}
   model: ${OLLAMA_MODEL:nomic-embed-text}
+  chat-model: ${OLLAMA_CHAT_MODEL:llama3.2}
 
 jwt:
   secret: ${JWT_SECRET:dev-secret-key-change-in-production-minimum-32-chars}

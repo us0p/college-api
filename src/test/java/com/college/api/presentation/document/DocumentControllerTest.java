@@ -2,6 +2,8 @@ package com.college.api.presentation.document;
 
 import com.college.api.application.document.DocumentService;
 import com.college.api.application.exception.ResourceNotFoundException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import com.college.api.domain.document.Document;
 import com.college.api.domain.role.Role;
 import com.college.api.domain.user.User;
@@ -47,24 +49,6 @@ class DocumentControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].fileName").value("report.pdf"))
                 .andExpect(jsonPath("$[0].username").value("alice"));
-    }
-
-    @Test
-    void GET_findById_whenExists_returns200() throws Exception {
-        when(service.findById(1)).thenReturn(buildDocument());
-
-        mockMvc.perform(get("/api/documents/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.bucketUrl").value("https://bucket.s3.us-east-1.amazonaws.com/uuid_report.pdf"));
-    }
-
-    @Test
-    void GET_findById_whenNotFound_returns404() throws Exception {
-        when(service.findById(99)).thenThrow(new ResourceNotFoundException("Document", 99));
-
-        mockMvc.perform(get("/api/documents/99"))
-                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -118,6 +102,26 @@ class DocumentControllerTest {
     }
 
     @Test
+    void GET_download_returnsFileBytes() throws Exception {
+        byte[] content = new byte[]{1, 2, 3};
+        when(service.download(1)).thenReturn(new DocumentService.DocumentDownload("report.pdf", content));
+
+        mockMvc.perform(get("/api/documents/1/download"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"report.pdf\""))
+                .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
+                .andExpect(content().bytes(content));
+    }
+
+    @Test
+    void GET_download_whenNotFound_returns404() throws Exception {
+        when(service.download(99)).thenThrow(new ResourceNotFoundException("Document", 99));
+
+        mockMvc.perform(get("/api/documents/99/download"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void DELETE_delete_returns204() throws Exception {
         doNothing().when(service).delete(1);
 
@@ -132,4 +136,5 @@ class DocumentControllerTest {
         mockMvc.perform(delete("/api/documents/99"))
                 .andExpect(status().isNotFound());
     }
+
 }

@@ -17,3 +17,6 @@ spring:
 aws:
   s3:
     region: us-east-1
+
+ollama:
+  chat-model: llama3.2

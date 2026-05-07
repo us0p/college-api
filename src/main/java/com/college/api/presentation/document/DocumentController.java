@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,13 +30,6 @@ public class DocumentController {
         return service.findAll().stream().map(DocumentResponse::from).toList();
     }
 
-    @Operation(summary = "Get a document by ID")
-    @ApiResponse(responseCode = "404", description = "Document not found")
-    @GetMapping("/{id}")
-    public DocumentResponse findById(@PathVariable Integer id) {
-        return DocumentResponse.from(service.findById(id));
-    }
-
     @Operation(summary = "Upload a document",
             description = "Uploads the file to S3, persists metadata, and automatically generates and stores vector embeddings via the configured embedding model.")
     @ApiResponse(responseCode = "201", description = "Document uploaded and embeddings stored")
@@ -54,6 +48,18 @@ public class DocumentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(DocumentResponse.from(document));
     }
 
+    @Operation(summary = "Download a document from S3")
+    @ApiResponse(responseCode = "200", description = "File contents")
+    @ApiResponse(responseCode = "404", description = "Document not found")
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> download(@PathVariable Integer id) {
+        DocumentService.DocumentDownload download = service.download(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + download.fileName() + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(download.content());
+    }
+
     @Operation(summary = "Delete a document")
     @ApiResponse(responseCode = "204", description = "Document deleted")
     @ApiResponse(responseCode = "404", description = "Document not found")
@@ -62,4 +68,5 @@ public class DocumentController {
     public void delete(@PathVariable Integer id) {
         service.delete(id);
     }
+
 }

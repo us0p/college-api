@@ -26,6 +26,7 @@ class DocumentServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private DocumentStoragePort storagePort;
     @Mock private DocumentTextExtractor textExtractor;
+    @Mock private TextSplitter textSplitter;
     @Mock private EmbeddingPort embeddingPort;
 
     @InjectMocks
@@ -49,26 +50,10 @@ class DocumentServiceTest {
     }
 
     @Test
-    void findById_whenExists_returnsDocument() {
-        Document doc = Document.builder().id(1).user(user).fileName("report.pdf")
-                .fileSize(1024).bucketUrl("https://bucket.s3.us-east-1.amazonaws.com/report.pdf").build();
-        when(documentRepository.findById(1)).thenReturn(Optional.of(doc));
-
-        assertThat(service.findById(1)).isEqualTo(doc);
-    }
-
-    @Test
-    void findById_whenNotFound_throwsResourceNotFoundException() {
-        when(documentRepository.findById(99)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> service.findById(99))
-                .isInstanceOf(ResourceNotFoundException.class);
-    }
-
-    @Test
-    void create_withKnowledgeBase_extractsDocumentContentAndSavesEmbedding() {
+    void create_withKnowledgeBase_splitsTextAndSavesChunkEmbeddings() {
         String s3Url = "https://bucket.s3.us-east-1.amazonaws.com/uuid_report.pdf";
         String extractedText = "lecture notes on data structures";
+        List<String> chunks = List.of("lecture notes", "on data structures");
         Document saved = Document.builder().id(1).user(user).fileName("report.pdf")
                 .fileSize(3).bucketUrl(s3Url).knowledgeBase(true).build();
 
@@ -76,16 +61,17 @@ class DocumentServiceTest {
         when(storagePort.upload("report.pdf", CONTENT, "application/pdf")).thenReturn(s3Url);
         when(documentRepository.save(any())).thenReturn(saved);
         when(textExtractor.extract(CONTENT, "application/pdf")).thenReturn(extractedText);
-        when(embeddingPort.embed(extractedText)).thenReturn(EMBEDDING);
-        when(embeddingRepository.save(any())).thenReturn(
-                DocumentEmbedding.builder().id(1).document(saved).embedding(EMBEDDING).build());
+        when(textSplitter.split(extractedText)).thenReturn(chunks);
+        when(embeddingPort.embed(any())).thenReturn(EMBEDDING);
+        when(embeddingRepository.saveAll(any())).thenReturn(List.of());
 
         Document result = service.create(1, "report.pdf", "Annual report", CONTENT, "application/pdf", 3, true);
 
         assertThat(result.getBucketUrl()).isEqualTo(s3Url);
         verify(textExtractor).extract(CONTENT, "application/pdf");
-        verify(embeddingPort).embed(extractedText);
-        verify(embeddingRepository).save(any(DocumentEmbedding.class));
+        verify(textSplitter).split(extractedText);
+        verify(embeddingPort, times(chunks.size())).embed(any());
+        verify(embeddingRepository).saveAll(argThat(list -> list.size() == chunks.size()));
     }
 
     @Test
@@ -101,11 +87,11 @@ class DocumentServiceTest {
         Document result = service.create(1, "report.pdf", "Annual report", CONTENT, "application/pdf", 3, false);
 
         assertThat(result.getBucketUrl()).isEqualTo(s3Url);
-        verifyNoInteractions(textExtractor, embeddingPort, embeddingRepository);
+        verifyNoInteractions(textExtractor, textSplitter, embeddingPort, embeddingRepository);
     }
 
     @Test
-    void create_whenTextExtractionFails_throwsException() {
+    void create_whenTextExtractionFails_deletesFromS3() {
         when(userRepository.findById(1)).thenReturn(Optional.of(user));
         when(storagePort.upload(any(), any(), any())).thenReturn("https://bucket.s3.us-east-1.amazonaws.com/key");
         when(documentRepository.save(any())).thenReturn(
@@ -117,7 +103,8 @@ class DocumentServiceTest {
         assertThatThrownBy(() -> service.create(1, "f.pdf", null, CONTENT, "application/pdf", 3, true))
                 .hasMessage("Tika error");
 
-        verifyNoInteractions(embeddingPort, embeddingRepository);
+        verify(storagePort).delete("key");
+        verifyNoInteractions(textSplitter, embeddingPort, embeddingRepository);
     }
 
     @Test
@@ -127,7 +114,7 @@ class DocumentServiceTest {
         assertThatThrownBy(() -> service.create(99, "f.pdf", null, CONTENT, "application/pdf", 3, false))
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verifyNoInteractions(storagePort, embeddingPort, documentRepository, embeddingRepository);
+        verifyNoInteractions(storagePort, textSplitter, embeddingPort, documentRepository, embeddingRepository);
     }
 
     @Test
@@ -138,11 +125,23 @@ class DocumentServiceTest {
         assertThatThrownBy(() -> service.create(1, "f.pdf", null, CONTENT, "application/pdf", 3, false))
                 .hasMessage("S3 error");
 
-        verifyNoInteractions(documentRepository, embeddingPort, embeddingRepository);
+        verifyNoInteractions(documentRepository, textSplitter, embeddingPort, embeddingRepository);
     }
 
     @Test
-    void create_whenEmbeddingFails_throwsException() {
+    void create_whenDbSaveFails_deletesFromS3() {
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(storagePort.upload(any(), any(), any())).thenReturn("https://bucket.s3.us-east-1.amazonaws.com/key");
+        when(documentRepository.save(any())).thenThrow(new RuntimeException("DB error"));
+
+        assertThatThrownBy(() -> service.create(1, "f.pdf", null, CONTENT, "application/pdf", 3, false))
+                .hasMessage("DB error");
+
+        verify(storagePort).delete("key");
+    }
+
+    @Test
+    void create_whenEmbeddingFails_deletesFromS3() {
         when(userRepository.findById(1)).thenReturn(Optional.of(user));
         when(storagePort.upload(any(), any(), any())).thenReturn("https://bucket.s3.us-east-1.amazonaws.com/key");
         when(documentRepository.save(any())).thenReturn(
@@ -150,28 +149,82 @@ class DocumentServiceTest {
                         .knowledgeBase(true)
                         .bucketUrl("https://bucket.s3.us-east-1.amazonaws.com/key").build());
         when(textExtractor.extract(any(), any())).thenReturn("extracted text");
+        when(textSplitter.split(any())).thenReturn(List.of("chunk one"));
         when(embeddingPort.embed(any())).thenThrow(new RuntimeException("Ollama error"));
 
         assertThatThrownBy(() -> service.create(1, "f.pdf", null, CONTENT, "application/pdf", 3, true))
                 .hasMessage("Ollama error");
 
+        verify(storagePort).delete("key");
         verifyNoInteractions(embeddingRepository);
     }
 
+
     @Test
-    void delete_whenExists_deletesById() {
-        when(documentRepository.existsById(1)).thenReturn(true);
+    void download_whenExists_returnsFileNameAndContent() {
+        Document doc = Document.builder().id(1).user(user).fileName("report.pdf")
+                .fileSize(1024).bucketUrl("https://bucket.s3.us-east-1.amazonaws.com/uuid_report.pdf").build();
+        byte[] content = new byte[]{1, 2, 3};
+        when(documentRepository.findById(1)).thenReturn(Optional.of(doc));
+        when(storagePort.download("uuid_report.pdf")).thenReturn(content);
+
+        DocumentService.DocumentDownload result = service.download(1);
+
+        assertThat(result.fileName()).isEqualTo("report.pdf");
+        assertThat(result.content()).isEqualTo(content);
+    }
+
+    @Test
+    void download_whenNotFound_throwsResourceNotFoundException() {
+        when(documentRepository.findById(99)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.download(99))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verifyNoInteractions(storagePort);
+    }
+
+    @Test
+    void download_whenStorageFails_propagatesException() {
+        Document doc = Document.builder().id(1).user(user).fileName("report.pdf")
+                .fileSize(1024).bucketUrl("https://bucket.s3.us-east-1.amazonaws.com/uuid_report.pdf").build();
+        when(documentRepository.findById(1)).thenReturn(Optional.of(doc));
+        when(storagePort.download(any())).thenThrow(new RuntimeException("S3 error"));
+
+        assertThatThrownBy(() -> service.download(1)).hasMessage("S3 error");
+    }
+
+    @Test
+    void delete_whenExists_deletesFromStorageAndDb() {
+        Document doc = Document.builder().id(1).user(user).fileName("report.pdf")
+                .fileSize(1024).bucketUrl("https://bucket.s3.us-east-1.amazonaws.com/uuid_report.pdf").build();
+        when(documentRepository.findById(1)).thenReturn(Optional.of(doc));
 
         service.delete(1);
 
+        verify(storagePort).delete("uuid_report.pdf");
         verify(documentRepository).deleteById(1);
     }
 
     @Test
     void delete_whenNotFound_throwsResourceNotFoundException() {
-        when(documentRepository.existsById(99)).thenReturn(false);
+        when(documentRepository.findById(99)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.delete(99))
                 .isInstanceOf(ResourceNotFoundException.class);
+
+        verifyNoInteractions(storagePort);
+    }
+
+    @Test
+    void delete_whenStorageFails_doesNotDeleteFromDb() {
+        Document doc = Document.builder().id(1).user(user).fileName("report.pdf")
+                .fileSize(1024).bucketUrl("https://bucket.s3.us-east-1.amazonaws.com/uuid_report.pdf").build();
+        when(documentRepository.findById(1)).thenReturn(Optional.of(doc));
+        doThrow(new RuntimeException("S3 error")).when(storagePort).delete(any());
+
+        assertThatThrownBy(() -> service.delete(1)).hasMessage("S3 error");
+
+        verify(documentRepository, never()).deleteById(any());
     }
 }

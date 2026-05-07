@@ -5,8 +5,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
@@ -60,6 +65,50 @@ class S3DocumentStorageAdapterTest {
                 .thenThrow(new RuntimeException("S3 unavailable"));
 
         assertThatThrownBy(() -> adapter.upload("f.pdf", new byte[1], "application/pdf"))
+                .hasMessage("S3 unavailable");
+    }
+
+    @Test
+    void delete_sendsDeleteRequestWithCorrectBucketAndKey() {
+        when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
+                .thenReturn(DeleteObjectResponse.builder().build());
+
+        adapter.delete("uuid_report.pdf");
+
+        verify(s3Client).deleteObject(
+                argThat((DeleteObjectRequest req) ->
+                        req.bucket().equals("test-bucket") &&
+                        req.key().equals("uuid_report.pdf")));
+    }
+
+    @Test
+    void delete_whenS3Fails_propagatesException() {
+        when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
+                .thenThrow(new RuntimeException("S3 unavailable"));
+
+        assertThatThrownBy(() -> adapter.delete("uuid_report.pdf"))
+                .hasMessage("S3 unavailable");
+    }
+
+    @Test
+    void download_returnsObjectBytes() {
+        byte[] expected = new byte[]{1, 2, 3};
+        when(s3Client.getObjectAsBytes(any(GetObjectRequest.class)))
+                .thenReturn(ResponseBytes.fromByteArray(GetObjectResponse.builder().build(), expected));
+
+        assertThat(adapter.download("uuid_report.pdf")).isEqualTo(expected);
+        verify(s3Client).getObjectAsBytes(
+                argThat((GetObjectRequest req) ->
+                        req.bucket().equals("test-bucket") &&
+                        req.key().equals("uuid_report.pdf")));
+    }
+
+    @Test
+    void download_whenS3Fails_propagatesException() {
+        when(s3Client.getObjectAsBytes(any(GetObjectRequest.class)))
+                .thenThrow(new RuntimeException("S3 unavailable"));
+
+        assertThatThrownBy(() -> adapter.download("uuid_report.pdf"))
                 .hasMessage("S3 unavailable");
     }
 }

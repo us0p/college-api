@@ -1,5 +1,6 @@
 package com.college.api.domain.document;
 
+import com.college.api.infrastructure.persistence.document.VectorConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,7 +22,13 @@ public class DocumentEmbedding {
     @JoinColumn(name = "document_id", nullable = false)
     private Document document;
 
-    // Stored as float[] and mapped to the vector(768) column via custom converter
+    @Column(name = "chunk_text", nullable = false, columnDefinition = "TEXT")
+    private String chunkText;
+
+    @Column(name = "chunk_index", nullable = false)
+    private int chunkIndex;
+
+    @Convert(converter = VectorConverter.class)
     @Column(name = "embedding", nullable = false, columnDefinition = "vector(768)")
     private float[] embedding;
 }
