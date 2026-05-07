@@ -35,16 +35,16 @@ class ChatServiceTest {
     private final User user = User.builder().id(1).username("alice")
             .role(Role.builder().id(1).name("student").build()).build();
 
-    private DocumentEmbedding buildChunk(String fileName, String chunkText, int chunkIndex) {
-        Document doc = Document.builder().id(1).user(user).fileName(fileName)
+    private DocumentEmbedding buildChunk(int docId, String fileName, String chunkText, int chunkIndex) {
+        Document doc = Document.builder().id(docId).user(user).fileName(fileName)
                 .fileSize(100).bucketUrl("https://bucket/file").knowledgeBase(true).build();
         return DocumentEmbedding.builder()
-                .id(1).document(doc).chunkText(chunkText).chunkIndex(chunkIndex).embedding(EMBEDDING).build();
+                .id(docId).document(doc).chunkText(chunkText).chunkIndex(chunkIndex).embedding(EMBEDDING).build();
     }
 
     @Test
     void ask_withChunks_injectsContextIntoPromptAndReturnsAnswer() {
-        DocumentEmbedding chunk = buildChunk("notes.pdf", "relevant content about AI", 0);
+        DocumentEmbedding chunk = buildChunk(1, "notes.pdf", "relevant content about AI", 0);
 
         when(embeddingPort.embed("what is AI?")).thenReturn(EMBEDDING);
         when(embeddingRepository.findSimilarChunks(EMBEDDING, 5)).thenReturn(List.of(chunk));
@@ -78,8 +78,8 @@ class ChatServiceTest {
 
     @Test
     void ask_withMultipleChunks_includesAllInContext() {
-        DocumentEmbedding chunk1 = buildChunk("doc1.pdf", "first chunk text", 0);
-        DocumentEmbedding chunk2 = buildChunk("doc2.pdf", "second chunk text", 1);
+        DocumentEmbedding chunk1 = buildChunk(1, "doc1.pdf", "first chunk text", 0);
+        DocumentEmbedding chunk2 = buildChunk(2, "doc2.pdf", "second chunk text", 1);
 
         when(embeddingPort.embed(any())).thenReturn(EMBEDDING);
         when(embeddingRepository.findSimilarChunks(EMBEDDING, 2)).thenReturn(List.of(chunk1, chunk2));

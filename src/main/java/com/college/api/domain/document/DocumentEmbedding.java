@@ -1,7 +1,8 @@
 package com.college.api.domain.document;
 
-import com.college.api.infrastructure.persistence.document.VectorConverter;
+import com.college.api.infrastructure.persistence.document.VectorType;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Type;
 import lombok.*;
 
 @Entity
@@ -28,7 +29,7 @@ public class DocumentEmbedding {
     @Column(name = "chunk_index", nullable = false)
     private int chunkIndex;
 
-    @Convert(converter = VectorConverter.class)
+    @Type(VectorType.class)
     @Column(name = "embedding", nullable = false, columnDefinition = "vector(768)")
     private float[] embedding;
 }

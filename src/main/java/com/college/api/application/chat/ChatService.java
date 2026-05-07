@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -70,10 +71,16 @@ public class ChatService {
 
         String answer = chatPort.chat(systemPrompt, question);
         List<SourceChunk> sources = chunks.stream()
-                .map(c -> new SourceChunk(
-                        c.getDocument().getId(),
-                        c.getDocument().getFileName(),
-                        c.getChunkIndex()))
+                .collect(Collectors.toMap(
+                        c -> c.getDocument().getId(),
+                        c -> new SourceChunk(
+                                c.getDocument().getId(),
+                                c.getDocument().getFileName(),
+                                c.getChunkIndex()),
+                        (a, b) -> a,
+                        LinkedHashMap::new))
+                .values()
+                .stream()
                 .toList();
 
         return new ChatAnswer(answer, sources);
