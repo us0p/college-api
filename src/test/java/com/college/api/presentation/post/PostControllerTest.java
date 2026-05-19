@@ -3,6 +3,7 @@ package com.college.api.presentation.post;
 import com.college.api.application.exception.ResourceNotFoundException;
 import com.college.api.application.post.PostService;
 import com.college.api.domain.post.Post;
+import com.college.api.domain.post.PostCategory;
 import com.college.api.domain.role.Role;
 import com.college.api.domain.user.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,10 +33,11 @@ class PostControllerTest {
 
     private final User user = User.builder().id(1).username("alice")
             .role(Role.builder().id(1).name("student").build()).build();
+    private final PostCategory category = PostCategory.builder().id(1).name("general").build();
 
     private Post buildPost() {
         return Post.builder().id(1).user(user).title("Hello").markdownContent("# Hello")
-                .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
+                .category(category).createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
     }
 
     @Test
@@ -45,7 +47,7 @@ class PostControllerTest {
         mockMvc.perform(get("/api/posts"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].title").value("Hello"))
-                .andExpect(jsonPath("$[0].markdownContent").value("# Hello"));
+                .andExpect(jsonPath("$[0].categoryName").value("general"));
     }
 
     @Test
@@ -68,31 +70,31 @@ class PostControllerTest {
 
     @Test
     void POST_create_withValidBody_returns201() throws Exception {
-        when(service.create(eq(1), eq("Hello"), any())).thenReturn(buildPost());
+        when(service.create(eq(1), eq("Hello"), any(), eq(1), isNull())).thenReturn(buildPost());
 
         mockMvc.perform(post("/api/posts")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new PostRequest(1, "Hello", "# Hello"))))
+                        .content(objectMapper.writeValueAsString(new PostRequest(1, "Hello", "# Hello", 1, null))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Hello"))
-                .andExpect(jsonPath("$.markdownContent").value("# Hello"));
+                .andExpect(jsonPath("$.categoryId").value(1));
     }
 
     @Test
-    void POST_create_withMissingUserId_returns400() throws Exception {
+    void POST_create_withMissingCategoryId_returns400() throws Exception {
         mockMvc.perform(post("/api/posts")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"Hello\",\"markdownContent\":\"# Hello\"}"))
+                        .content("{\"userId\":1,\"title\":\"Hello\",\"markdownContent\":\"# Hello\"}"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void PUT_update_returns200() throws Exception {
-        when(service.update(eq(1), any(), any())).thenReturn(buildPost());
+        when(service.update(eq(1), any(), any(), eq(1), isNull())).thenReturn(buildPost());
 
         mockMvc.perform(put("/api/posts/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new PostUpdateRequest("Updated", "# Updated"))))
+                        .content(objectMapper.writeValueAsString(new PostUpdateRequest("Updated", "# Updated", 1, null))))
                 .andExpect(status().isOk());
     }
 

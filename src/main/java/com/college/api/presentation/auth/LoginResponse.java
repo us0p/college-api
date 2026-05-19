@@ -1,3 +1,15 @@
 package com.college.api.presentation.auth;
 
-public record LoginResponse(String token) {}
+import java.util.List;
+
+public record LoginResponse(
+        String token,
+        Integer userId,
+        String username,
+        String email,
+        String phoneNumber,
+        String ra,
+        Integer roleId,
+        String roleName,
+        List<String> permissions
+) {}

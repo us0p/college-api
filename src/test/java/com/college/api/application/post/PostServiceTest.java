@@ -2,6 +2,8 @@ package com.college.api.application.post;
 
 import com.college.api.application.exception.ResourceNotFoundException;
 import com.college.api.domain.post.Post;
+import com.college.api.domain.post.PostCategory;
+import com.college.api.domain.post.PostCategoryRepository;
 import com.college.api.domain.post.PostRepository;
 import com.college.api.domain.role.Role;
 import com.college.api.domain.user.User;
@@ -25,28 +27,30 @@ class PostServiceTest {
 
     @Mock private PostRepository postRepository;
     @Mock private UserRepository userRepository;
+    @Mock private PostCategoryRepository postCategoryRepository;
 
     @InjectMocks
     private PostService service;
 
     private final User user = User.builder().id(1).username("alice")
             .role(Role.builder().id(1).name("student").build()).build();
+    private final PostCategory category = PostCategory.builder().id(1).name("general").build();
+
+    private Post buildPost() {
+        return Post.builder().id(1).user(user).title("Hello").markdownContent("# Hello")
+                .category(category).createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
+    }
 
     @Test
     void findAllActive_returnsOnlyNonDeletedPosts() {
-        List<Post> activePosts = List.of(
-                Post.builder().id(1).user(user).title("Hello").markdownContent("# Hello")
-                        .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build()
-        );
-        when(postRepository.findAllActive()).thenReturn(activePosts);
+        when(postRepository.findAllActive()).thenReturn(List.of(buildPost()));
 
         assertThat(service.findAllActive()).hasSize(1);
     }
 
     @Test
     void findById_whenExists_returnsPost() {
-        Post post = Post.builder().id(1).user(user).title("Hello").markdownContent("# Hello")
-                .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
+        Post post = buildPost();
         when(postRepository.findById(1)).thenReturn(Optional.of(post));
 
         assertThat(service.findById(1)).isEqualTo(post);
@@ -61,13 +65,13 @@ class PostServiceTest {
     }
 
     @Test
-    void create_whenUserExists_savesPost() {
+    void create_whenUserAndCategoryExist_savesPost() {
         when(userRepository.findById(1)).thenReturn(Optional.of(user));
-        Post saved = Post.builder().id(1).user(user).title("Hello").markdownContent("# Hello")
-                .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
+        when(postCategoryRepository.findById(1)).thenReturn(Optional.of(category));
+        Post saved = buildPost();
         when(postRepository.save(any())).thenReturn(saved);
 
-        Post result = service.create(1, "Hello", "# Hello");
+        Post result = service.create(1, "Hello", "# Hello", 1, null);
 
         assertThat(result.getTitle()).isEqualTo("Hello");
         assertThat(result.getMarkdownContent()).isEqualTo("# Hello");
@@ -78,27 +82,38 @@ class PostServiceTest {
     void create_whenUserNotFound_throwsResourceNotFoundException() {
         when(userRepository.findById(99)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.create(99, "Hello", "# Hello"))
+        assertThatThrownBy(() -> service.create(99, "Hello", "# Hello", 1, null))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    void update_updatesTitleAndMarkdownContent() {
-        Post existing = Post.builder().id(1).user(user).title("Old").markdownContent("old")
-                .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
+    void create_whenCategoryNotFound_throwsResourceNotFoundException() {
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(postCategoryRepository.findById(99)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.create(1, "Hello", "# Hello", 99, null))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void update_updatesTitleMarkdownAndCategory() {
+        Post existing = buildPost();
+        PostCategory newCategory = PostCategory.builder().id(2).name("tech").build();
         when(postRepository.findById(1)).thenReturn(Optional.of(existing));
+        when(postCategoryRepository.findById(2)).thenReturn(Optional.of(newCategory));
         when(postRepository.save(existing)).thenReturn(existing);
 
-        Post result = service.update(1, "New", "new");
+        Post result = service.update(1, "New", "new", 2, "http://img.url");
 
         assertThat(result.getTitle()).isEqualTo("New");
         assertThat(result.getMarkdownContent()).isEqualTo("new");
+        assertThat(result.getCoverImgUrl()).isEqualTo("http://img.url");
+        assertThat(result.getCategory().getName()).isEqualTo("tech");
     }
 
     @Test
     void softDelete_setsDeletedAt() {
-        Post existing = Post.builder().id(1).user(user).title("Hello").markdownContent("# Hello")
-                .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now()).build();
+        Post existing = buildPost();
         when(postRepository.findById(1)).thenReturn(Optional.of(existing));
         when(postRepository.save(any())).thenReturn(existing);
 

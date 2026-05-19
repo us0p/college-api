@@ -8,6 +8,16 @@ Table roles {
     name varchar(20) UNIQUE NOT NULL
 }
 
+Table ui_item {
+    name varchar(20) PK
+}
+
+Table ui_permission_objects {
+    id int PK
+    ui_item_name NOT NULL references ui_item(name)
+    permission_id int NOT NULL references permission_objects(id)
+}
+
 Table role_permissions {
     id int PK
     role_id int NOT NULL references roles(id)
@@ -32,6 +42,13 @@ Table posts {
     created_at datetimetz NOT NULL
     updated_at datetimetz NOT NULL
     deleted_at datetimetz
+    cover_img_url text
+    category_id int NOT NULL references post_category(id)
+}
+
+Table post_category {
+    id int PK
+    name varchar(20) NOT NULL UNIQUE
 }
 
 Table documents {

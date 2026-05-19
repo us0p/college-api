@@ -2,10 +2,13 @@ package com.college.api.presentation.chat;
 
 import com.college.api.application.chat.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,7 +26,9 @@ public class ChatController {
             summary = "Ask a question",
             description = "Retrieves the most relevant document chunks from the knowledge base, injects them as context into a system prompt, and forwards the question to the configured LLM.")
     @ApiResponse(responseCode = "200", description = "LLM answer with source attribution")
-    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "400", description = "Validation error",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class)))
     @PostMapping
     public ChatResponse chat(@RequestBody @Valid ChatRequest request) {
         int chunks = request.contextChunks() != null ? request.contextChunks() : 5;

@@ -2,6 +2,8 @@ package com.college.api.application.post;
 
 import com.college.api.application.exception.ResourceNotFoundException;
 import com.college.api.domain.post.Post;
+import com.college.api.domain.post.PostCategory;
+import com.college.api.domain.post.PostCategoryRepository;
 import com.college.api.domain.post.PostRepository;
 import com.college.api.domain.user.User;
 import com.college.api.domain.user.UserRepository;
@@ -18,6 +20,7 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final PostCategoryRepository postCategoryRepository;
 
     @Transactional(readOnly = true)
     public List<Post> findAllActive() {
@@ -31,14 +34,18 @@ public class PostService {
     }
 
     @Transactional
-    public Post create(Integer userId, String title, String markdownContent) {
+    public Post create(Integer userId, String title, String markdownContent, Integer categoryId, String coverImgUrl) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        PostCategory category = postCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("PostCategory", categoryId));
         OffsetDateTime now = OffsetDateTime.now();
         Post post = Post.builder()
                 .user(user)
                 .title(title)
                 .markdownContent(markdownContent)
+                .coverImgUrl(coverImgUrl)
+                .category(category)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -46,10 +53,14 @@ public class PostService {
     }
 
     @Transactional
-    public Post update(Integer id, String title, String markdownContent) {
+    public Post update(Integer id, String title, String markdownContent, Integer categoryId, String coverImgUrl) {
         Post post = findById(id);
+        PostCategory category = postCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("PostCategory", categoryId));
         post.setTitle(title);
         post.setMarkdownContent(markdownContent);
+        post.setCoverImgUrl(coverImgUrl);
+        post.setCategory(category);
         post.setUpdatedAt(OffsetDateTime.now());
         return postRepository.save(post);
     }

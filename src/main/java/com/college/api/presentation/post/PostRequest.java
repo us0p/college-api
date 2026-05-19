@@ -7,5 +7,7 @@ import jakarta.validation.constraints.Size;
 public record PostRequest(
         @NotNull Integer userId,
         @NotBlank @Size(max = 200) String title,
-        @NotBlank String markdownContent
+        @NotBlank String markdownContent,
+        @NotNull Integer categoryId,
+        String coverImgUrl
 ) {}

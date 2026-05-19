@@ -3,12 +3,16 @@ package com.college.api.presentation.document;
 import com.college.api.application.document.DocumentService;
 import com.college.api.domain.document.Document;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,8 +37,12 @@ public class DocumentController {
     @Operation(summary = "Upload a document",
             description = "Uploads the file to S3, persists metadata, and automatically generates and stores vector embeddings via the configured embedding model.")
     @ApiResponse(responseCode = "201", description = "Document uploaded and embeddings stored")
-    @ApiResponse(responseCode = "400", description = "Missing required parameter or file")
-    @ApiResponse(responseCode = "404", description = "User not found")
+    @ApiResponse(responseCode = "400", description = "Missing required parameter or file",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "User not found",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class)))
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DocumentResponse> create(
             @RequestParam Integer userId,
@@ -49,8 +57,15 @@ public class DocumentController {
     }
 
     @Operation(summary = "Download a document from S3")
-    @ApiResponse(responseCode = "200", description = "File contents")
-    @ApiResponse(responseCode = "404", description = "Document not found")
+    @ApiResponse(responseCode = "200", description = "File contents",
+            headers = @Header(name = HttpHeaders.CONTENT_DISPOSITION,
+                    description = "attachment; filename=\"<filename>\"",
+                    schema = @Schema(type = "string")),
+            content = @Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                    schema = @Schema(type = "string", format = "binary")))
+    @ApiResponse(responseCode = "404", description = "Document not found",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class)))
     @GetMapping("/{id}/download")
     public ResponseEntity<byte[]> download(@PathVariable Integer id) {
         DocumentService.DocumentDownload download = service.download(id);
@@ -62,7 +77,9 @@ public class DocumentController {
 
     @Operation(summary = "Delete a document")
     @ApiResponse(responseCode = "204", description = "Document deleted")
-    @ApiResponse(responseCode = "404", description = "Document not found")
+    @ApiResponse(responseCode = "404", description = "Document not found",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class)))
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Integer id) {

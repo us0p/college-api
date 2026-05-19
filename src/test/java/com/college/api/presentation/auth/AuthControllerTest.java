@@ -12,6 +12,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -24,15 +26,25 @@ class AuthControllerTest {
     @Autowired ObjectMapper objectMapper;
     @MockBean AuthService authService;
 
+    private static final AuthService.LoginResult MOCK_RESULT = new AuthService.LoginResult(
+            "mock.jwt.token", 1, "alice", "alice@test.com", null, null, 1, "ADMIN",
+            List.of("posts", "documents")
+    );
+
     @Test
-    void POST_login_withValidCredentials_returns200WithToken() throws Exception {
-        when(authService.login("alice", "secret123")).thenReturn("mock.jwt.token");
+    void POST_login_withValidCredentials_returns200WithTokenAndUserData() throws Exception {
+        when(authService.login("alice", "secret123")).thenReturn(MOCK_RESULT);
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new LoginRequest("alice", "secret123"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("mock.jwt.token"));
+                .andExpect(jsonPath("$.token").value("mock.jwt.token"))
+                .andExpect(jsonPath("$.userId").value(1))
+                .andExpect(jsonPath("$.username").value("alice"))
+                .andExpect(jsonPath("$.roleName").value("ADMIN"))
+                .andExpect(jsonPath("$.permissions").isArray())
+                .andExpect(jsonPath("$.permissions[0]").value("posts"));
     }
 
     @Test

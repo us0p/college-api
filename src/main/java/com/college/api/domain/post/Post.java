@@ -30,6 +30,13 @@ public class Post {
     @Column(name = "markdown_content", columnDefinition = "TEXT", nullable = false)
     private String markdownContent;
 
+    @Column(name = "cover_img_url", columnDefinition = "TEXT")
+    private String coverImgUrl;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "category_id", nullable = false)
+    private PostCategory category;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 

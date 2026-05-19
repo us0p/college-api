@@ -1,6 +1,6 @@
-package com.college.api.presentation.role;
+package com.college.api.presentation.uiitem;
 
-import com.college.api.application.role.RolePermissionService;
+import com.college.api.application.uiitem.UiPermissionObjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,52 +15,53 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Role Permissions", description = "Assign and revoke permissions on roles")
+@Tag(name = "UI Item Permissions", description = "Assign and revoke permission objects on UI items")
 @RestController
-@RequestMapping("/api/role-permissions")
+@RequestMapping("/api/ui-permission-objects")
 @RequiredArgsConstructor
-public class RolePermissionController {
+public class UiPermissionObjectController {
 
-    private final RolePermissionService service;
+    private final UiPermissionObjectService service;
 
-    @Operation(summary = "List all role-permission assignments")
+    @Operation(summary = "List all UI item-permission assignments")
     @GetMapping
-    public List<RolePermissionResponse> findAll() {
-        return service.findAll().stream().map(RolePermissionResponse::from).toList();
+    public List<UiPermissionObjectResponse> findAll() {
+        return service.findAll().stream().map(UiPermissionObjectResponse::from).toList();
     }
 
-    @Operation(summary = "Get a role-permission assignment by ID")
+    @Operation(summary = "Get a UI item-permission assignment by ID")
     @ApiResponse(responseCode = "200", description = "Assignment found")
     @ApiResponse(responseCode = "404", description = "Assignment not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
     @GetMapping("/{id}")
-    public RolePermissionResponse findById(@PathVariable Integer id) {
-        return RolePermissionResponse.from(service.findById(id));
+    public UiPermissionObjectResponse findById(@PathVariable Integer id) {
+        return UiPermissionObjectResponse.from(service.findById(id));
     }
 
-    @Operation(summary = "List all permissions assigned to a role")
-    @GetMapping("/by-role/{roleId}")
-    public List<RolePermissionResponse> findByRoleId(@PathVariable Integer roleId) {
-        return service.findByRoleId(roleId).stream().map(RolePermissionResponse::from).toList();
+    @Operation(summary = "List all permission assignments for a UI item")
+    @GetMapping("/by-ui-item/{uiItemName}")
+    public List<UiPermissionObjectResponse> findByUiItemName(@PathVariable String uiItemName) {
+        return service.findByUiItemName(uiItemName).stream().map(UiPermissionObjectResponse::from).toList();
     }
 
-    @Operation(summary = "Assign a permission to a role")
-    @ApiResponse(responseCode = "201", description = "Permission assigned")
+    @Operation(summary = "Assign a permission object to a UI item")
+    @ApiResponse(responseCode = "201", description = "Assignment created")
     @ApiResponse(responseCode = "400", description = "Validation error",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
-    @ApiResponse(responseCode = "404", description = "Role or permission object not found",
+    @ApiResponse(responseCode = "404", description = "UI item or permission object not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
     @PostMapping
-    public ResponseEntity<RolePermissionResponse> create(@Valid @RequestBody RolePermissionRequest request) {
+    public ResponseEntity<UiPermissionObjectResponse> create(@Valid @RequestBody UiPermissionObjectRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(RolePermissionResponse.from(service.create(request.roleId(), request.permissionId())));
+                .body(UiPermissionObjectResponse.from(
+                        service.create(request.uiItemName(), request.permissionId())));
     }
 
-    @Operation(summary = "Revoke a permission from a role")
-    @ApiResponse(responseCode = "204", description = "Permission revoked")
+    @Operation(summary = "Remove a permission object from a UI item")
+    @ApiResponse(responseCode = "204", description = "Assignment removed")
     @ApiResponse(responseCode = "404", description = "Assignment not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))

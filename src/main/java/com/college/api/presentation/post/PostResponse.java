@@ -10,6 +10,9 @@ public record PostResponse(
         String username,
         String title,
         String markdownContent,
+        String coverImgUrl,
+        Integer categoryId,
+        String categoryName,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt,
         OffsetDateTime deletedAt
@@ -21,6 +24,9 @@ public record PostResponse(
                 post.getUser().getUsername(),
                 post.getTitle(),
                 post.getMarkdownContent(),
+                post.getCoverImgUrl(),
+                post.getCategory().getId(),
+                post.getCategory().getName(),
                 post.getCreatedAt(),
                 post.getUpdatedAt(),
                 post.getDeletedAt()
