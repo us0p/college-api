@@ -2,6 +2,7 @@ package com.college.api.presentation.auth;
 
 import com.college.api.application.auth.AuthService;
 import com.college.api.application.exception.InvalidCredentialsException;
+import com.college.api.application.user.UserService;
 import com.college.api.infrastructure.config.SecurityConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ class AuthControllerTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @MockBean AuthService authService;
+    @MockBean UserService userService;
 
     private static final AuthService.LoginResult MOCK_RESULT = new AuthService.LoginResult(
             "mock.jwt.token", 1, "alice", "alice@test.com", null, null, 1, "ADMIN",

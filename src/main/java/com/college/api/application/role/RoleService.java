@@ -2,12 +2,11 @@ package com.college.api.application.role;
 
 import com.college.api.application.exception.ResourceNotFoundException;
 import com.college.api.domain.role.Role;
+import com.college.api.domain.role.RolePage;
 import com.college.api.domain.role.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -16,8 +15,8 @@ public class RoleService {
     private final RoleRepository repository;
 
     @Transactional(readOnly = true)
-    public List<Role> findAll() {
-        return repository.findAll();
+    public RolePage findFiltered(String searchParam, int page, int size) {
+        return repository.findFiltered(searchParam, page, size);
     }
 
     @Transactional(readOnly = true)

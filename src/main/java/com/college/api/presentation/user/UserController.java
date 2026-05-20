@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class UserController {
     private final UserService service;
 
     @Operation(summary = "List all users")
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping
     public List<UserResponse> findAll() {
         return service.findAll().stream().map(UserResponse::from).toList();
@@ -34,6 +36,7 @@ public class UserController {
     @ApiResponse(responseCode = "404", description = "User not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping("/{id}")
     public UserResponse findById(@PathVariable Integer id) {
         return UserResponse.from(service.findById(id));
@@ -47,10 +50,12 @@ public class UserController {
     @ApiResponse(responseCode = "404", description = "Role not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
+    @PreAuthorize("hasAuthority('admin')")
     @PostMapping
     public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(UserResponse.from(service.create(request.username(), request.password(), request.email(), request.phoneNumber(), request.roleId(), request.ra())));
+                .body(UserResponse.from(service.create(request.username(), request.password(),
+                        request.email(), request.phoneNumber(), request.roleId(), request.ra())));
     }
 
     @Operation(summary = "Update a user")
@@ -61,9 +66,11 @@ public class UserController {
     @ApiResponse(responseCode = "404", description = "User or role not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
+    @PreAuthorize("hasAuthority('admin')")
     @PutMapping("/{id}")
     public UserResponse update(@PathVariable Integer id, @Valid @RequestBody UserRequest request) {
-        return UserResponse.from(service.update(id, request.username(), request.password(), request.email(), request.phoneNumber(), request.roleId(), request.ra()));
+        return UserResponse.from(service.update(id, request.username(), request.password(),
+                request.email(), request.phoneNumber(), request.roleId(), request.ra()));
     }
 
     @Operation(summary = "Delete a user")
@@ -71,6 +78,7 @@ public class UserController {
     @ApiResponse(responseCode = "404", description = "User not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
+    @PreAuthorize("hasAuthority('admin')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Integer id) {

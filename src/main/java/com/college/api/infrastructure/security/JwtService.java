@@ -36,6 +36,11 @@ public class JwtService {
         return parseClaims(token).getSubject();
     }
 
+    public Integer extractUserId(String token) {
+        Object id = parseClaims(token).get("userId");
+        return id instanceof Integer i ? i : null;
+    }
+
     @SuppressWarnings("unchecked")
     public List<String> extractPermissions(String token) {
         Object perms = parseClaims(token).get("permissions");

@@ -5,9 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record NoticeRequest(
-        @NotNull Integer userId,
         @NotBlank @Size(max = 200) String title,
-        @NotBlank String markdownContent,
+        @NotBlank @Size(max = 50_000) String markdownContent,
         @NotNull Integer categoryId,
         String coverImgUrl
 ) {}

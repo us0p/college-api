@@ -1,9 +1,8 @@
 package com.college.api.presentation.document;
 
+import com.college.api.WithUserPrincipal;
 import com.college.api.application.document.DocumentService;
 import com.college.api.application.exception.ResourceNotFoundException;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import com.college.api.domain.document.Document;
 import com.college.api.domain.role.Role;
 import com.college.api.domain.user.User;
@@ -12,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -52,6 +53,7 @@ class DocumentControllerTest {
     }
 
     @Test
+    @WithUserPrincipal
     void POST_create_withValidMultipart_returns201() throws Exception {
         when(service.create(anyInt(), any(), any(), any(), any(), anyInt(), anyBoolean()))
                 .thenReturn(buildDocument());
@@ -61,7 +63,6 @@ class DocumentControllerTest {
 
         mockMvc.perform(multipart("/api/documents")
                         .file(file)
-                        .param("userId", "1")
                         .param("description", "Annual report")
                         .param("knowledgeBase", "true"))
                 .andExpect(status().isCreated())
@@ -71,6 +72,7 @@ class DocumentControllerTest {
     }
 
     @Test
+    @WithUserPrincipal
     void POST_create_withoutDescription_returns201() throws Exception {
         when(service.create(anyInt(), any(), isNull(), any(), any(), anyInt(), anyBoolean()))
                 .thenReturn(buildDocument());
@@ -79,25 +81,13 @@ class DocumentControllerTest {
                 "file", "report.pdf", "application/pdf", new byte[1024]);
 
         mockMvc.perform(multipart("/api/documents")
-                        .file(file)
-                        .param("userId", "1"))
+                        .file(file))
                 .andExpect(status().isCreated());
     }
 
     @Test
     void POST_create_withMissingFile_returns400() throws Exception {
-        mockMvc.perform(multipart("/api/documents")
-                        .param("userId", "1"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void POST_create_withMissingUserId_returns400() throws Exception {
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "report.pdf", "application/pdf", new byte[1024]);
-
-        mockMvc.perform(multipart("/api/documents")
-                        .file(file))
+        mockMvc.perform(multipart("/api/documents"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -136,5 +126,4 @@ class DocumentControllerTest {
         mockMvc.perform(delete("/api/documents/99"))
                 .andExpect(status().isNotFound());
     }
-
 }

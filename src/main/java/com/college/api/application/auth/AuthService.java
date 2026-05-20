@@ -33,6 +33,10 @@ public class AuthService {
             List<String> permissions
     ) {}
 
+    public String reissueToken(String username, Integer userId, String role, List<String> permissions) {
+        return jwtService.generateToken(username, userId, role, permissions);
+    }
+
     @Transactional(readOnly = true)
     public LoginResult login(String username, String password) {
         User user = userRepository.findByUsername(username)

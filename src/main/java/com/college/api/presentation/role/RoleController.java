@@ -11,9 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name = "Roles", description = "Role management")
 @RestController
@@ -23,10 +22,15 @@ public class RoleController {
 
     private final RoleService service;
 
-    @Operation(summary = "List all roles")
+    @Operation(summary = "List roles with optional search and pagination")
+    @ApiResponse(responseCode = "200", description = "OK")
     @GetMapping
-    public List<RoleResponse> findAll() {
-        return service.findAll().stream().map(RoleResponse::from).toList();
+    public RolePageResponse findAll(
+            @RequestParam(name = "search_param", required = false) String searchParam,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return RolePageResponse.from(service.findFiltered(searchParam, page, size));
     }
 
     @Operation(summary = "Get a role by ID")
@@ -39,6 +43,7 @@ public class RoleController {
         return RoleResponse.from(service.findById(id));
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Create a role")
     @ApiResponse(responseCode = "201", description = "Role created")
     @ApiResponse(responseCode = "400", description = "Validation error",
@@ -50,6 +55,7 @@ public class RoleController {
                 .body(RoleResponse.from(service.create(request.name())));
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Update a role's name")
     @ApiResponse(responseCode = "200", description = "Role updated")
     @ApiResponse(responseCode = "400", description = "Validation error",
@@ -63,6 +69,7 @@ public class RoleController {
         return RoleResponse.from(service.update(id, request.name()));
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Delete a role")
     @ApiResponse(responseCode = "204", description = "Role deleted")
     @ApiResponse(responseCode = "404", description = "Role not found",

@@ -7,7 +7,6 @@ import java.util.Optional;
 public interface NoticeRepository {
     Notice save(Notice notice);
     Optional<Notice> findById(Integer id);
-    List<Notice> findAll();
     NoticePage findFiltered(String searchParam, int page, int size);
     long countActiveByCategoryAndCreatedAtAfter(String categoryName, OffsetDateTime after);
     long countActiveByCategory(String categoryName);

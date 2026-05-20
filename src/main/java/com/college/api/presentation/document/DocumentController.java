@@ -2,6 +2,7 @@ package com.college.api.presentation.document;
 
 import com.college.api.application.document.DocumentService;
 import com.college.api.domain.document.Document;
+import com.college.api.infrastructure.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -43,16 +46,18 @@ public class DocumentController {
     @ApiResponse(responseCode = "404", description = "User not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
+    @PreAuthorize("hasAuthority('admin')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DocumentResponse> create(
-            @RequestParam Integer userId,
             @RequestParam(required = false) String description,
             @RequestParam(required = false, defaultValue = "false") boolean knowledgeBase,
-            @RequestPart("file") MultipartFile file) throws IOException {
+            @RequestPart("file") MultipartFile file,
+            @AuthenticationPrincipal UserPrincipal principal) throws IOException {
         String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : file.getName();
         String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
         Document document = service.create(
-                userId, fileName, description, file.getBytes(), contentType, (int) file.getSize(), knowledgeBase);
+                principal.userId(), fileName, description, file.getBytes(),
+                contentType, (int) file.getSize(), knowledgeBase);
         return ResponseEntity.status(HttpStatus.CREATED).body(DocumentResponse.from(document));
     }
 
@@ -80,10 +85,10 @@ public class DocumentController {
     @ApiResponse(responseCode = "404", description = "Document not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
+    @PreAuthorize("hasAuthority('admin')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Integer id) {
         service.delete(id);
     }
-
 }

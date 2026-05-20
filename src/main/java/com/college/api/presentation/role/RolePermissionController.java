@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -45,6 +46,7 @@ public class RolePermissionController {
         return service.findByRoleId(roleId).stream().map(RolePermissionResponse::from).toList();
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Assign a permission to a role")
     @ApiResponse(responseCode = "201", description = "Permission assigned")
     @ApiResponse(responseCode = "400", description = "Validation error",
@@ -59,6 +61,7 @@ public class RolePermissionController {
                 .body(RolePermissionResponse.from(service.create(request.roleId(), request.permissionId())));
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Revoke a permission from a role")
     @ApiResponse(responseCode = "204", description = "Permission revoked")
     @ApiResponse(responseCode = "404", description = "Assignment not found",

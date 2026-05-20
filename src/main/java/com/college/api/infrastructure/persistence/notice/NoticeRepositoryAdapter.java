@@ -32,11 +32,6 @@ public class NoticeRepositoryAdapter implements NoticeRepository {
     }
 
     @Override
-    public List<Notice> findAll() {
-        return jpa.findAll();
-    }
-
-    @Override
     public NoticePage findFiltered(String searchParam, int page, int size) {
         Specification<Notice> spec = notDeleted().and(matchesSearch(searchParam));
         Page<Notice> result = jpa.findAll(spec, PageRequest.of(page, size));

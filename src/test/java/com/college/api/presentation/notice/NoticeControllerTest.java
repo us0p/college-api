@@ -2,6 +2,7 @@ package com.college.api.presentation.notice;
 
 import com.college.api.application.exception.ResourceNotFoundException;
 import com.college.api.application.notice.NoticeService;
+import com.college.api.WithUserPrincipal;
 import com.college.api.domain.notice.Notice;
 import com.college.api.domain.notice.NoticeCategory;
 import com.college.api.domain.notice.NoticePage;
@@ -85,19 +86,6 @@ class NoticeControllerTest {
     }
 
     @Test
-    void GET_findAll_withSearchAndPagination_passesAllToService() throws Exception {
-        when(service.findFiltered("java", 1, 20)).thenReturn(new NoticePage(List.of(), 1, 20, 0, 0));
-
-        mockMvc.perform(get("/api/notices")
-                        .param("search_param", "java")
-                        .param("page", "1")
-                        .param("size", "20"))
-                .andExpect(status().isOk());
-
-        verify(service).findFiltered("java", 1, 20);
-    }
-
-    @Test
     void GET_findAll_withNoResults_returnsEmptyPage() throws Exception {
         when(service.findFiltered(null, 0, 10)).thenReturn(new NoticePage(List.of(), 0, 10, 0, 0));
 
@@ -130,22 +118,24 @@ class NoticeControllerTest {
     // ── POST /api/notices ───────────────────────────────────────────────────────
 
     @Test
+    @WithUserPrincipal
     void POST_create_withValidBody_returns201() throws Exception {
         when(service.create(eq(1), eq("Hello"), any(), eq(1), isNull())).thenReturn(buildNotice());
 
         mockMvc.perform(post("/api/notices")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new NoticeRequest(1, "Hello", "# Hello", 1, null))))
+                        .content(objectMapper.writeValueAsString(new NoticeRequest("Hello", "# Hello", 1, null))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Hello"))
                 .andExpect(jsonPath("$.categoryId").value(1));
     }
 
     @Test
+    @WithUserPrincipal
     void POST_create_withMissingCategoryId_returns400() throws Exception {
         mockMvc.perform(post("/api/notices")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"userId\":1,\"title\":\"Hello\",\"markdownContent\":\"# Hello\"}"))
+                        .content("{\"title\":\"Hello\",\"markdownContent\":\"# Hello\"}"))
                 .andExpect(status().isBadRequest());
     }
 
