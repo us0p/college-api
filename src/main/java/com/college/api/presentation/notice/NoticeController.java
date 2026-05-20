@@ -1,6 +1,6 @@
-package com.college.api.presentation.post;
+package com.college.api.presentation.notice;
 
-import com.college.api.application.post.PostService;
+import com.college.api.application.notice.NoticeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,36 +14,39 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-@Tag(name = "Posts", description = "User-authored markdown posts")
+@Tag(name = "Notices", description = "User-authored markdown notices")
 @RestController
-@RequestMapping("/api/posts")
+@RequestMapping("/api/notices")
 @RequiredArgsConstructor
-public class PostController {
+public class NoticeController {
 
-    private final PostService service;
+    private final NoticeService service;
 
-    @Operation(summary = "List all active posts")
+    @Operation(summary = "List active notices with optional search and pagination")
     @SecurityRequirements
+    @ApiResponse(responseCode = "200", description = "OK")
     @GetMapping
-    public List<PostResponse> findAllActive() {
-        return service.findAllActive().stream().map(PostResponse::from).toList();
+    public NoticePageResponse findAll(
+            @RequestParam(name = "search_param", required = false) String searchParam,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return NoticePageResponse.from(service.findFiltered(searchParam, page, size));
     }
 
-    @Operation(summary = "Get a post by ID")
+    @Operation(summary = "Get a notice by ID")
     @SecurityRequirements
-    @ApiResponse(responseCode = "200", description = "Post found")
-    @ApiResponse(responseCode = "404", description = "Post not found",
+    @ApiResponse(responseCode = "200", description = "Notice found")
+    @ApiResponse(responseCode = "404", description = "Notice not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
     @GetMapping("/{id}")
-    public PostResponse findById(@PathVariable Integer id) {
-        return PostResponse.from(service.findById(id));
+    public NoticeResponse findById(@PathVariable Integer id) {
+        return NoticeResponse.from(service.findById(id));
     }
 
-    @Operation(summary = "Create a post")
-    @ApiResponse(responseCode = "201", description = "Post created")
+    @Operation(summary = "Create a notice")
+    @ApiResponse(responseCode = "201", description = "Notice created")
     @ApiResponse(responseCode = "400", description = "Validation error",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
@@ -51,31 +54,31 @@ public class PostController {
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
     @PostMapping
-    public ResponseEntity<PostResponse> create(@Valid @RequestBody PostRequest request) {
+    public ResponseEntity<NoticeResponse> create(@Valid @RequestBody NoticeRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(PostResponse.from(service.create(
+                .body(NoticeResponse.from(service.create(
                         request.userId(), request.title(), request.markdownContent(),
                         request.categoryId(), request.coverImgUrl())));
     }
 
-    @Operation(summary = "Update a post's content")
-    @ApiResponse(responseCode = "200", description = "Post updated")
+    @Operation(summary = "Update a notice's content")
+    @ApiResponse(responseCode = "200", description = "Notice updated")
     @ApiResponse(responseCode = "400", description = "Validation error",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
-    @ApiResponse(responseCode = "404", description = "Post or category not found",
+    @ApiResponse(responseCode = "404", description = "Notice or category not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
     @PutMapping("/{id}")
-    public PostResponse update(@PathVariable Integer id, @Valid @RequestBody PostUpdateRequest request) {
-        return PostResponse.from(service.update(
+    public NoticeResponse update(@PathVariable Integer id, @Valid @RequestBody NoticeUpdateRequest request) {
+        return NoticeResponse.from(service.update(
                 id, request.title(), request.markdownContent(),
                 request.categoryId(), request.coverImgUrl()));
     }
 
-    @Operation(summary = "Soft-delete a post")
-    @ApiResponse(responseCode = "204", description = "Post deleted")
-    @ApiResponse(responseCode = "404", description = "Post not found",
+    @Operation(summary = "Soft-delete a notice")
+    @ApiResponse(responseCode = "204", description = "Notice deleted")
+    @ApiResponse(responseCode = "404", description = "Notice not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
     @DeleteMapping("/{id}")

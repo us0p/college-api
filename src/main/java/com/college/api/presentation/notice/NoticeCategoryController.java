@@ -1,6 +1,6 @@
-package com.college.api.presentation.post;
+package com.college.api.presentation.notice;
 
-import com.college.api.application.post.PostCategoryService;
+import com.college.api.application.notice.NoticeCategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,42 +15,42 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Post Categories", description = "Post category management")
+@Tag(name = "Notice Categories", description = "Notice category management")
 @RestController
-@RequestMapping("/api/post-categories")
+@RequestMapping("/api/notice-categories")
 @RequiredArgsConstructor
-public class PostCategoryController {
+public class NoticeCategoryController {
 
-    private final PostCategoryService service;
+    private final NoticeCategoryService service;
 
-    @Operation(summary = "List all post categories")
+    @Operation(summary = "List all notice categories")
     @GetMapping
-    public List<PostCategoryResponse> findAll() {
-        return service.findAll().stream().map(PostCategoryResponse::from).toList();
+    public List<NoticeCategoryResponse> findAll() {
+        return service.findAll().stream().map(NoticeCategoryResponse::from).toList();
     }
 
-    @Operation(summary = "Get a post category by ID")
+    @Operation(summary = "Get a notice category by ID")
     @ApiResponse(responseCode = "200", description = "Category found")
     @ApiResponse(responseCode = "404", description = "Category not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
     @GetMapping("/{id}")
-    public PostCategoryResponse findById(@PathVariable Integer id) {
-        return PostCategoryResponse.from(service.findById(id));
+    public NoticeCategoryResponse findById(@PathVariable Integer id) {
+        return NoticeCategoryResponse.from(service.findById(id));
     }
 
-    @Operation(summary = "Create a post category")
+    @Operation(summary = "Create a notice category")
     @ApiResponse(responseCode = "201", description = "Category created")
     @ApiResponse(responseCode = "400", description = "Validation error",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
     @PostMapping
-    public ResponseEntity<PostCategoryResponse> create(@Valid @RequestBody PostCategoryRequest request) {
+    public ResponseEntity<NoticeCategoryResponse> create(@Valid @RequestBody NoticeCategoryRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(PostCategoryResponse.from(service.create(request.name())));
+                .body(NoticeCategoryResponse.from(service.create(request.name())));
     }
 
-    @Operation(summary = "Update a post category's name")
+    @Operation(summary = "Update a notice category's name")
     @ApiResponse(responseCode = "200", description = "Category updated")
     @ApiResponse(responseCode = "400", description = "Validation error",
             content = @Content(mediaType = "application/problem+json",
@@ -59,11 +59,11 @@ public class PostCategoryController {
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
     @PutMapping("/{id}")
-    public PostCategoryResponse update(@PathVariable Integer id, @Valid @RequestBody PostCategoryRequest request) {
-        return PostCategoryResponse.from(service.update(id, request.name()));
+    public NoticeCategoryResponse update(@PathVariable Integer id, @Valid @RequestBody NoticeCategoryRequest request) {
+        return NoticeCategoryResponse.from(service.update(id, request.name()));
     }
 
-    @Operation(summary = "Delete a post category")
+    @Operation(summary = "Delete a notice category")
     @ApiResponse(responseCode = "204", description = "Category deleted")
     @ApiResponse(responseCode = "404", description = "Category not found",
             content = @Content(mediaType = "application/problem+json",

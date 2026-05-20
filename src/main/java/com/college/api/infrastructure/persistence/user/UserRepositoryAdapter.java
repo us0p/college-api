@@ -35,6 +35,11 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     @Override
+    public long countByRoleName(String roleName) {
+        return jpa.countByRoleName(roleName);
+    }
+
+    @Override
     public void deleteById(Integer id) {
         jpa.deleteById(id);
     }

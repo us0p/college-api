@@ -34,7 +34,7 @@ Table users {
     ra varchar(10) UNIQUE
 }
 
-Table posts {
+Table notices {
     id int PK
     user_id int NOT NULL references users(id)
     title varchar(200) NOT NULL
@@ -43,10 +43,10 @@ Table posts {
     updated_at datetimetz NOT NULL
     deleted_at datetimetz
     cover_img_url text
-    category_id int NOT NULL references post_category(id)
+    category_id int NOT NULL references notice_category(id)
 }
 
-Table post_category {
+Table notice_category {
     id int PK
     name varchar(20) NOT NULL UNIQUE
 }

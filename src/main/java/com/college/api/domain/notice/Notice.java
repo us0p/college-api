@@ -1,4 +1,4 @@
-package com.college.api.domain.post;
+package com.college.api.domain.notice;
 
 import com.college.api.domain.user.User;
 import jakarta.persistence.*;
@@ -7,14 +7,14 @@ import lombok.*;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "posts")
+@Table(name = "notices")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(of = "id")
-public class Post {
+public class Notice {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,7 +35,7 @@ public class Post {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "category_id", nullable = false)
-    private PostCategory category;
+    private NoticeCategory category;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;

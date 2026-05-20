@@ -3,4 +3,4 @@ CREATE TABLE IF NOT EXISTS post_category (
     name VARCHAR(20) UNIQUE NOT NULL
 );
 
-INSERT INTO post_category (name) VALUES ('general');
+INSERT INTO post_category (name) VALUES ('geral');

@@ -8,6 +8,7 @@ public interface UserRepository {
     Optional<User> findById(Integer id);
     Optional<User> findByUsername(String username);
     List<User> findAll();
+    long countByRoleName(String roleName);
     void deleteById(Integer id);
     boolean existsById(Integer id);
 }

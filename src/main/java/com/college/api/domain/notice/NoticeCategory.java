@@ -1,17 +1,17 @@
-package com.college.api.domain.post;
+package com.college.api.domain.notice;
 
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "post_category")
+@Table(name = "notice_category")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(of = "id")
-public class PostCategory {
+public class NoticeCategory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
