@@ -25,6 +25,7 @@ public class UiItemController {
     private final UiItemService service;
 
     @Operation(summary = "List all UI items")
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping
     public List<UiItemResponse> findAll() {
         return service.findAll().stream().map(UiItemResponse::from).toList();
@@ -35,6 +36,7 @@ public class UiItemController {
     @ApiResponse(responseCode = "404", description = "UI item not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping("/{name}")
     public UiItemResponse findById(@PathVariable String name) {
         return UiItemResponse.from(service.findById(name));

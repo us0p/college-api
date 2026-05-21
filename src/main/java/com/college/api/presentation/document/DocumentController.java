@@ -22,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 @Tag(name = "Documents", description = "Document upload, storage and AI embedding management")
 @RestController
@@ -29,9 +30,22 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DocumentController {
 
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/msword",
+            "application/vnd.ms-excel",
+            "text/plain",
+            "image/png",
+            "image/jpeg"
+    );
+
     private final DocumentService service;
 
     @Operation(summary = "List all documents")
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping
     public List<DocumentResponse> findAll() {
         return service.findAll().stream().map(DocumentResponse::from).toList();
@@ -53,11 +67,20 @@ public class DocumentController {
             @RequestParam(required = false, defaultValue = "false") boolean knowledgeBase,
             @RequestPart("file") MultipartFile file,
             @AuthenticationPrincipal UserPrincipal principal) throws IOException {
-        String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : file.getName();
-        String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File must not be empty");
+        }
+        String rawName = file.getOriginalFilename() != null ? file.getOriginalFilename() : file.getName();
+        String safeFileName = rawName.replaceAll("[\"\\\\/:*?<>|\\r\\n]", "_");
+        byte[] bytes = file.getBytes();
+        org.apache.tika.Tika tika = new org.apache.tika.Tika();
+        String detectedType = tika.detect(bytes, safeFileName);
+        if (!ALLOWED_CONTENT_TYPES.contains(detectedType)) {
+            throw new IllegalArgumentException("File type not allowed: " + detectedType);
+        }
         Document document = service.create(
-                principal.userId(), fileName, description, file.getBytes(),
-                contentType, (int) file.getSize(), knowledgeBase);
+                principal.userId(), safeFileName, description, bytes,
+                detectedType, bytes.length, knowledgeBase);
         return ResponseEntity.status(HttpStatus.CREATED).body(DocumentResponse.from(document));
     }
 
@@ -71,11 +94,16 @@ public class DocumentController {
     @ApiResponse(responseCode = "404", description = "Document not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping("/{id}/download")
     public ResponseEntity<byte[]> download(@PathVariable Integer id) {
         DocumentService.DocumentDownload download = service.download(id);
+        String safeFilename = download.fileName().replaceAll("[\"\\\\/:*?<>|\\r\\n]", "_");
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + download.fileName() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        org.springframework.http.ContentDisposition.attachment()
+                                .filename(safeFilename, java.nio.charset.StandardCharsets.UTF_8)
+                                .build().toString())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(download.content());
     }

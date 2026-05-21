@@ -24,11 +24,12 @@ public class RoleController {
 
     @Operation(summary = "List roles with optional search and pagination")
     @ApiResponse(responseCode = "200", description = "OK")
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping
     public RolePageResponse findAll(
-            @RequestParam(name = "search_param", required = false) String searchParam,
+            @RequestParam(name = "search_param", required = false) @jakarta.validation.constraints.Size(max = 200) String searchParam,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") @jakarta.validation.constraints.Max(100) int size
     ) {
         return RolePageResponse.from(service.findFiltered(searchParam, page, size));
     }
@@ -38,6 +39,7 @@ public class RoleController {
     @ApiResponse(responseCode = "404", description = "Role not found",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping("/{id}")
     public RoleResponse findById(@PathVariable Integer id) {
         return RoleResponse.from(service.findById(id));

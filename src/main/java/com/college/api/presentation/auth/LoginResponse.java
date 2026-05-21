@@ -3,7 +3,6 @@ package com.college.api.presentation.auth;
 import java.util.List;
 
 public record LoginResponse(
-        String token,
         Integer userId,
         String username,
         String email,

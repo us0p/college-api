@@ -26,6 +26,9 @@ public class RoleRepositoryAdapter implements RoleRepository {
     public Optional<Role> findById(Integer id) { return jpa.findById(id); }
 
     @Override
+    public Optional<Role> findByName(String name) { return jpa.findByName(name); }
+
+    @Override
     public RolePage findFiltered(String searchParam, int page, int size) {
         Page<Role> result = jpa.findAll(matchesSearch(searchParam), PageRequest.of(page, size));
         return new RolePage(result.getContent(), result.getNumber(), result.getSize(),

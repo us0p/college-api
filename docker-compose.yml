@@ -1,6 +1,8 @@
 services:
   db:
-    image: pgvector/pgvector:pg18
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.db
     env_file: .env
     environment:
       POSTGRES_USER: postgres

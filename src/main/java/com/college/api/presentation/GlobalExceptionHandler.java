@@ -1,6 +1,8 @@
 package com.college.api.presentation;
 
+import com.college.api.application.exception.ForbiddenOperationException;
 import com.college.api.application.exception.InvalidCredentialsException;
+import com.college.api.application.exception.InvalidTokenException;
 import com.college.api.application.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +24,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     public ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ProblemDetail handleInvalidToken(InvalidTokenException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(ForbiddenOperationException.class)
+    public ProblemDetail handleForbiddenOperation(ForbiddenOperationException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)

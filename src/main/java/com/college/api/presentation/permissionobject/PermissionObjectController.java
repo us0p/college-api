@@ -17,6 +17,7 @@ public class PermissionObjectController {
     private final PermissionObjectService service;
 
     @Operation(summary = "List all permission objects")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('admin')")
     @GetMapping
     public List<PermissionObjectResponse> findAll() {
         return service.findAll().stream().map(PermissionObjectResponse::from).toList();

@@ -13,6 +13,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -29,6 +31,9 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
 
+    @Value("${jwt.expiration-ms}")
+    private long jwtExpirationMs;
+
     @Operation(summary = "Login and receive a JWT token")
     @SecurityRequirements
     @ApiResponse(responseCode = "200", description = "Login successful")
@@ -41,7 +46,6 @@ public class AuthController {
         AuthService.LoginResult result = authService.login(request.username(), request.password());
         setTokenCookie(response, result.token());
         return new LoginResponse(
-                result.token(),
                 result.userId(),
                 result.username(),
                 result.email(),
@@ -57,17 +61,16 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Session is valid")
     @ApiResponse(responseCode = "401", description = "No valid session")
     @GetMapping("/me")
-    public LoginResponse me(Authentication authentication) {
+    public LoginResponse me(Authentication authentication, HttpServletResponse response) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         User user = userService.findById(principal.userId());
         List<String> permissions = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
-        // Re-issue a fresh token so the frontend can keep it in memory
-        String freshToken = authService.reissueToken(principal.username(), principal.userId(),
-                user.getRole().getName(), permissions);
+        String freshToken = authService.reissueToken(
+                principal.username(), principal.userId(), user.getRole().getName(), permissions, user.getTokenVersion());
+        setTokenCookie(response, freshToken);
         return new LoginResponse(
-                freshToken,
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
@@ -79,10 +82,34 @@ public class AuthController {
         );
     }
 
-    @Operation(summary = "Logout — clears the session cookie")
+    @Operation(summary = "Request a password-reset email")
+    @SecurityRequirements
+    @ApiResponse(responseCode = "204", description = "Request received — email sent if address is registered")
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.requestPasswordReset(request.email());
+    }
+
+    @Operation(summary = "Set password using a one-time token sent by email")
+    @SecurityRequirements
+    @ApiResponse(responseCode = "204", description = "Password set successfully")
+    @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou já utilizado",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    @PostMapping("/set-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void setPassword(@Valid @RequestBody SetPasswordRequest request) {
+        authService.setPassword(request.token(), request.password());
+    }
+
+    @Operation(summary = "Logout — clears the session cookie and invalidates the token")
     @SecurityRequirements
     @PostMapping("/logout")
-    public void logout(HttpServletResponse response) {
+    public void logout(HttpServletResponse response, Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal principal) {
+            authService.invalidateSessions(principal.userId());
+        }
         response.addHeader("Set-Cookie",
                 "token=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0");
     }
@@ -93,7 +120,7 @@ public class AuthController {
                 + "; Secure"
                 + "; SameSite=Strict"
                 + "; Path=/"
-                + "; Max-Age=" + (24 * 60 * 60);
+                + "; Max-Age=" + (jwtExpirationMs / 1000);
         response.addHeader("Set-Cookie", cookie);
     }
 }

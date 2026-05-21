@@ -24,12 +24,14 @@ public class RolePermissionController {
 
     private final RolePermissionService service;
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "List all role-permission assignments")
     @GetMapping
     public List<RolePermissionResponse> findAll() {
         return service.findAll().stream().map(RolePermissionResponse::from).toList();
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Get a role-permission assignment by ID")
     @ApiResponse(responseCode = "200", description = "Assignment found")
     @ApiResponse(responseCode = "404", description = "Assignment not found",
@@ -40,6 +42,7 @@ public class RolePermissionController {
         return RolePermissionResponse.from(service.findById(id));
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "List all permissions assigned to a role")
     @GetMapping("/by-role/{roleId}")
     public List<RolePermissionResponse> findByRoleId(@PathVariable Integer roleId) {

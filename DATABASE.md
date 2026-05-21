@@ -27,11 +27,19 @@ Table role_permissions {
 Table users {
     id int PK
     username varchar(20) UNIQUE NOT NULL
-    password_hash varchar(60) NOT NULL
+    password_hash varchar(60)
     email varchar(254) UNIQUE NOT NULL
     phone_number varchar(20) UNIQUE
     role_id int NOT NULL references roles(id)
     ra varchar(10) UNIQUE
+}
+
+Table password_reset_tokens {
+    id int PK
+    user_id int NOT NULL references users(id)
+    token varchar(64) UNIQUE NOT NULL
+    expires_at datetimetz NOT NULL
+    used_at datetimetz
 }
 
 Table notices {

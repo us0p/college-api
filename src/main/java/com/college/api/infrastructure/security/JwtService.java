@@ -20,12 +20,13 @@ public class JwtService {
         this.expirationMs = expirationMs;
     }
 
-    public String generateToken(String username, Integer userId, String role, List<String> permissions) {
+    public String generateToken(String username, Integer userId, String role, List<String> permissions, int tokenVersion) {
         return Jwts.builder()
                 .subject(username)
                 .claim("userId", userId)
                 .claim("role", role)
                 .claim("permissions", permissions)
+                .claim("tokenVersion", tokenVersion)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(secretKey)
@@ -39,6 +40,11 @@ public class JwtService {
     public Integer extractUserId(String token) {
         Object id = parseClaims(token).get("userId");
         return id instanceof Integer i ? i : null;
+    }
+
+    public Integer extractTokenVersion(String token) {
+        Object v = parseClaims(token).get("tokenVersion");
+        return v instanceof Integer i ? i : null;
     }
 
     @SuppressWarnings("unchecked")

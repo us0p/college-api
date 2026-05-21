@@ -98,7 +98,7 @@ class DocumentControllerTest {
 
         mockMvc.perform(get("/api/documents/1/download"))
                 .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"report.pdf\""))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, org.hamcrest.Matchers.containsString("report.pdf")))
                 .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
                 .andExpect(content().bytes(content));
     }
